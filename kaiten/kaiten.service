@@ -1,0 +1,11 @@
+# This is a systemd unit which can be used to spawn kaiten as a service on a 
+# systemd based host running docker.
+[Unit]
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker run -e KAITEN_SERVER=10.1.10.10 --name=%p quay.io/brianredbeard/kaiten
+ExecStop=/usr/bin/docker kill %p
+
