@@ -1,0 +1,11 @@
+# This is a systemd unit which can be used to spawn IRCD as a service on a 
+# systemd based host running docker.
+
+[Unit]
+Requires=docker.service
+After=docker.service
+
+[Service]
+Restart=always
+ExecStart=/usr/bin/docker run --name=%p -p 6667:6667 -e NGIRCD_CONF_URL=http://fpaste.org/145254/14143107/raw/ quay.io/brianredbeard/ngircd
+ExecStop=/usr/bin/docker kill %p
