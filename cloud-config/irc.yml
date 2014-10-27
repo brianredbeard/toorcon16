@@ -1,0 +1,75 @@
+#cloud-config
+
+# Within this file you should change the values of variable KAITEN_SERVER
+# as well as the ssh-keys and etcd discovery URL. A new etcd discovery URL can
+# be retrieved from http://discovery.etcd.io/new  While this step is optional
+# it opens the doors (on a CoreOS system) to utilize some advanced coordination
+# and data sharing between the systems.
+
+
+coreos:
+  units:
+    - name: etcd.service
+      enable: true
+      command: start
+    - name: fleet.service
+      enable: true
+      command: start
+    - name: irc.service
+      command: start
+      content: |
+        [Unit]
+        Requires=docker.service
+        After=docker.service
+
+        [Service]
+        Restart=always
+        ExecStart=/usr/bin/docker run --name=%p -p 6667:6667 -e NGIRCD_CONF_URL=http://fpaste.org/145254/14143107/raw/ quay.io/brianredbeard/ngircd
+        ExecStop=/usr/bin/docker kill %p
+    - name: tmp.mount  
+      command: restart
+      enable: true
+      content: |
+        [Unit]
+        Description=Temporary Directory
+        Documentation=man:hier(7)
+        Documentation=http://www.freedesktop.org/wiki/Software/systemd/APIFileSystems
+        DefaultDependencies=no
+        Conflicts=umount.target
+        Before=local-fs.target umount.target
+        
+        [Mount]
+        What=/var/tmp
+        Where=/tmp
+        Options=bind
+        
+        [Install]
+        WantedBy=multi-user.target
+
+  etcd:
+    discovery: https://discovery.etcd.io/8c6a0a340062a386cb9347a69d3ff5bb
+    addr: $private_ipv4:4001
+    peer-addr: $private_ipv4:7001
+
+ssh_authorized_keys:
+  - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCzttE8tsIMvbjfdslkfdjlkfjfdsjfdlkfdjsfdl1dEzbc9dN2IfR2jeLCeKFXyfA+T86yulmuUcS6xxglDA+RNjqG1uHI7cXFypzV+NyDxghIuoC0B+DbmFOWoGAdNx56rt/RNKQmgkh5zRKPQh2lliZ7VkqI9o1xEiIYPKBpOw== redbeard
+
+users:
+  - name: redbeard
+    groups: 
+      - adm
+      - docker
+      - sudo
+    ssh-authorized-keys:
+      - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAAgQCzttE8tsIMvbjfdslkfdjlkfjfdsjfdlkfdjsfdl1dEzbc9dN2IfR2jeLCeKFXyfA+T86yulmuUcS6xxglDA+RNjqG1uHI7cXFypzV+NyDxghIuoC0B+DbmFOWoGAdNx56rt/RNKQmgkh5zRKPQh2lliZ7VkqI9o1xEiIYPKBpOw== redbeard
+
+write_files:
+  - path: /tmp/testfile
+    permissions: 0644
+    content: |
+          verbosity=1
+          randomtest
+  - path: /etc/fleet/fleet.conf
+    permissions: 0644
+    content: |
+          verbosity=2
